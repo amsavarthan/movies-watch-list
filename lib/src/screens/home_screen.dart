@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movie_watch_list/src/db/database_helper.dart';
 import 'package:movie_watch_list/src/providers/movie_list_provider.dart';
 import 'package:movie_watch_list/src/services/firebase_service.dart';
 import 'package:movie_watch_list/src/widgets/custom_fab.dart';
@@ -6,14 +7,39 @@ import 'package:movie_watch_list/src/widgets/empty_placeholder.dart';
 import 'package:movie_watch_list/src/widgets/movies_list.dart';
 import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     Key? key,
   }) : super(key: key);
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isLoading = false;
+
+  void _loadDataFromDb() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final movies = await DatabaseHelper.instance.getAllMovies();
+    context.read<MoviesListProvier>().movies = movies;
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDataFromDb();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final movies = context.watch<MoviesListProvier>().movies;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Movies List"),
@@ -45,7 +71,11 @@ class HomeScreen extends StatelessWidget {
           )
         ],
       ),
-      body: movies.isEmpty ? const EmptyPlaceholder() : const MoviesList(),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : (movies.isEmpty ? const EmptyPlaceholder() : const MoviesList()),
       floatingActionButton: const CustomFab(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
